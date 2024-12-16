@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');  // Utilisation de bcryptjs au lieu de bcrypt
 const jwt = require('jsonwebtoken');
 const Client = require('../models/Client');
 const authMiddleware = require('../middleware/authMiddleware'); // Importation du middleware d'authentification
@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10); // Utilisation de bcryptjs pour hasher le mot de passe
 
     // Création du nouveau client avec le rôle et l'avatar par défaut
     const client = new Client({
@@ -60,7 +60,7 @@ router.post('/login', async (req, res) => {
     const client = await Client.findOne({ email });
     if (!client) return res.status(404).json({ message: 'Client non trouvé!' });
 
-    const isPasswordValid = await bcrypt.compare(password, client.password);
+    const isPasswordValid = await bcrypt.compare(password, client.password); // Vérification du mot de passe avec bcryptjs
     if (!isPasswordValid) return res.status(401).json({ message: 'Mot de passe incorrect!' });
 
     const token = jwt.sign({ id: client._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -126,4 +126,3 @@ router.put('/updateClient', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-
