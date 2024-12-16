@@ -1,27 +1,107 @@
 const express = require('express');
-const router = express.Router();
-const Project = require('../models/Project');
+const mongoose = require('mongoose');
+const Project = require('../models/Project'); // Modèle Mongoose pour les projets
 
-// Route pour récupérer tous les projets
-router.get('/', async (req, res) => {
+const router = express.Router();
+
+// Route pour créer un projet sans image
+router.post('/', async (req, res) => {
   try {
-    const projects = await Project.find();
-    res.json(projects);
+    // Vérification des champs obligatoires
+    const { title, category, description } = req.body;
+    if (!title || !category || !description) {
+      return res.status(400).json({ message: 'Tous les champs sont requis' });
+    }
+
+    // Créer un projet sans image
+    const project = new Project({
+      title,
+      category,
+      description,
+    });
+
+    // Sauvegarder le projet dans la base de données
+    await project.save();
+    res.status(201).json(project); // Retourner le projet créé
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Erreur lors de la création du projet:', err);
+    res.status(500).json({ message: 'Erreur lors de la création du projet', error: err.message });
   }
 });
 
-// Route pour ajouter un projet
-router.post('/', async (req, res) => {
-  const { title, description, imageUrl } = req.body;
-  const newProject = new Project({ title, description, imageUrl });
-
+// Récupérer toutes les catégories uniques des projets
+router.get('/categories', async (req, res) => {
   try {
-    const savedProject = await newProject.save();
-    res.status(201).json(savedProject);
+    const categories = await Project.distinct('category');
+    res.json(categories);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: 'Erreur de récupération des catégories', error: err.message });
+  }
+});
+
+// Récupérer les projets avec filtrage par catégorie et pagination
+router.get('/', async (req, res) => {
+  try {
+    const { category, page = 1, limit = 10 } = req.query;
+    const filter = category && category !== 'All' ? { category } : {};
+
+    const projects = await Project.find(filter)
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const totalProjects = await Project.countDocuments(filter);
+
+    res.json({
+      projects,
+      totalProjects,
+      totalPages: Math.ceil(totalProjects / limit),
+      currentPage: Number(page),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur de récupération des projets', error: err.message });
+  }
+});
+
+// Récupérer un projet par ID
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID de projet invalide' });
+    }
+
+    const project = await Project.findById(id);
+    if (!project) {
+      return res.status(404).json({ message: 'Projet non trouvé' });
+    }
+
+    res.json(project);
+  } catch (err) {
+    console.error('Erreur serveur:', err);
+    res.status(500).json({ message: 'Erreur du serveur', error: err.message });
+  }
+});
+
+// Supprimer un projet par ID
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID de projet invalide' });
+    }
+
+    const project = await Project.findById(id);
+    if (!project) {
+      return res.status(404).json({ message: 'Projet non trouvé' });
+    }
+
+    // Supprimer le projet de la base de données
+    await Project.findByIdAndDelete(id);
+
+    res.status(200).json({ message: 'Projet supprimé avec succès' });
+  } catch (err) {
+    console.error('Erreur serveur:', err);
+    res.status(500).json({ message: 'Erreur du serveur', error: err.message });
   }
 });
 

@@ -20,7 +20,13 @@ router.post('/', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier téléchargé' });
   }
-  res.status(200).json({ message: 'Fichier téléchargé avec succès', file: req.file });
+  
+  // Renvoie le chemin d'accès à l'image
+  res.status(200).json({
+    message: 'Fichier téléchargé avec succès',
+    file: req.file,
+    fileUrl: `/uploads/${req.file.filename}` // URL pour accéder à l'image téléchargée
+  });
 });
 
 module.exports = router;
