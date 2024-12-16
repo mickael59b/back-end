@@ -4,37 +4,67 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
-
-// Importer les routes
-const clientRoutes = require('./routes/clients');
-const projectRoutes = require('./routes/project');
-const contactRoutes = require('./routes/contact');
-const uploadRoutes = require('./routes/upload'); // Importer la route d'upload
+const fs = require('fs');
+const helmet = require('helmet'); // Pour sécuriser les en-têtes HTTP
 
 // Initialiser l'application Express
 const app = express();
 
-// Middleware pour gérer CORS et les corps de requêtes JSON
-app.use(cors()); // Permet d'accepter les requêtes CORS
-app.use(bodyParser.json()); // Permet de lire les requêtes JSON
+// Validation des variables d'environnement critiques
+if (!process.env.MONGO_URI) {
+  console.error("Erreur : La variable d'environnement MONGO_URI n'est pas définie.");
+  process.exit(1); // Arrêter le serveur si la configuration critique manque
+}
+
+// Création du dossier 'uploads' s'il n'existe pas
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Middleware pour gérer la sécurité, CORS et les corps de requêtes
+app.use(helmet()); // Sécuriser les en-têtes HTTP
+app.use(cors()); // Permettre les requêtes CORS
+app.use(bodyParser.json()); // Permettre de lire les corps de requêtes JSON
+app.use(bodyParser.urlencoded({ extended: true })); // Permettre les données de type application/x-www-form-urlencoded
 
 // Middleware pour servir les fichiers téléchargés depuis 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Définir les routes
-app.use('/api/clients', clientRoutes); // Pour la gestion des clients (inscription, connexion, etc.)
-app.use('/api/projects', projectRoutes); // Pour la gestion des projets
-app.use('/api/contact', contactRoutes); // Pour la gestion des messages de contact
-app.use('/api/upload', uploadRoutes); // Pour la gestion des uploads de fichiers
+// Importer et définir les routes
+const clientRoutes = require('./routes/clients');
+const projectRoutes = require('./routes/project');
+const contactRoutes = require('./routes/contact');
+const uploadRoutes = require('./routes/upload'); // Gestion des uploads
+
+app.use('/api/clients', clientRoutes); // Gestion des clients
+app.use('/api/projects', projectRoutes); // Gestion des projets
+app.use('/api/contact', contactRoutes); // Gestion des contacts
+app.use('/api/upload', uploadRoutes); // Gestion des fichiers uploadés
+
+// Route de base pour vérifier si l'API fonctionne
+app.get('/', (req, res) => {
+  res.send('API fonctionne !');
+});
+
+// Gestion des routes non trouvées
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Route non trouvée' });
+});
+
+// Gestion des erreurs globales
+app.use((err, req, res, next) => {
+  console.error('Erreur serveur :', err.message);
+  res.status(500).json({ error: 'Erreur serveur' });
+});
 
 // Fonction pour se connecter à MongoDB
 const connectDB = async () => {
   try {
-    // Connexion à MongoDB Atlas avec l'URI de connexion depuis le fichier .env
-    await mongoose.connect(process.env.MONGO_URI); // Plus besoin de useNewUrlParser et useUnifiedTopology
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB connecté');
   } catch (err) {
-    console.error('Erreur de connexion MongoDB', err);
+    console.error('Erreur de connexion MongoDB :', err.message);
     process.exit(1); // Arrêter l'application si la connexion échoue
   }
 };
@@ -42,13 +72,8 @@ const connectDB = async () => {
 // Appeler la fonction pour se connecter à la base de données
 connectDB();
 
-// Route de base pour vérifier si l'API fonctionne
-app.get('/', (req, res) => {
-  res.send('API fonctionne !');
-});
-
 // Démarrer le serveur
-const PORT = process.env.PORT || 5000; // Utiliser le port défini par Render
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Serveur en cours d'exécution sur le port ${PORT}`);
 });
