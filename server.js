@@ -31,10 +31,7 @@ app.use('/api/upload', uploadRoutes); // Pour la gestion des uploads de fichiers
 const connectDB = async () => {
   try {
     // Connexion à MongoDB Atlas avec l'URI de connexion depuis le fichier .env
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(process.env.MONGO_URI); // Plus besoin de useNewUrlParser et useUnifiedTopology
     console.log('MongoDB connecté');
   } catch (err) {
     console.error('Erreur de connexion MongoDB', err);
