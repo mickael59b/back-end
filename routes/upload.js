@@ -6,55 +6,59 @@ const router = express.Router();
 // Configurer Multer pour enregistrer les fichiers dans le dossier 'uploads'
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Le dossier 'uploads' où les fichiers seront stockés
+    cb(null, 'uploads/'); // Dossier où les fichiers seront stockés
   },
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9); // Nom unique
-    cb(null, uniqueName + path.extname(file.originalname)); // Ajoute l'extension du fichier original
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+    cb(null, uniqueName); // Nom unique pour chaque fichier
   },
 });
 
-// Valider les types de fichiers
-const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif']; // Types autorisés
-  if (allowedMimeTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Type de fichier non supporté. Seuls les fichiers JPEG, PNG et GIF sont autorisés.'));
-  }
-};
-
-// Configuration de Multer
+// Limites de fichier et types autorisés
 const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limite la taille des fichiers à 5 Mo
-});
+  limits: { fileSize: 5 * 1024 * 1024 }, // Taille maximale : 5 MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif']; // Types autorisés
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Type de fichier non supporté. Seuls JPEG, PNG et GIF sont autorisés.'));
+    }
+    cb(null, true);
+  },
+}).single('image'); // Gestion d'un seul fichier avec le champ 'image'
 
 // Route pour uploader une image
-router.post('/', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Aucun fichier téléchargé.' });
-  }
+router.post('/', (req, res) => {
+  upload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // Erreurs spécifiques à Multer
+      console.error('Erreur Multer :', err.message);
+      return res.status(400).json({ error: `Erreur Multer : ${err.message}` });
+    } else if (err) {
+      // Autres erreurs (exemple : type de fichier)
+      console.error('Erreur lors de l\'upload :', err.message);
+      return res.status(400).json({ error: err.message });
+    }
 
-  // Renvoie le chemin d'accès à l'image
-  res.status(200).json({
-    message: 'Fichier téléchargé avec succès.',
-    file: req.file,
-    fileUrl: `/uploads/${req.file.filename}`, // URL pour accéder à l'image téléchargée
+    if (!req.file) {
+      console.error('Aucun fichier téléchargé');
+      return res.status(400).json({ error: 'Aucun fichier téléchargé' });
+    }
+
+    // Réponse réussie
+    console.log('Fichier téléchargé avec succès :', req.file.filename);
+    res.status(200).json({
+      message: 'Fichier téléchargé avec succès',
+      file: req.file,
+      fileUrl: `/uploads/${req.file.filename}`, // Chemin accessible pour le fichier
+    });
   });
 });
 
-// Gestion des erreurs Multer
+// Middleware pour capturer d'autres erreurs (optionnel)
 router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    // Erreurs spécifiques à Multer (ex : fichier trop volumineux)
-    return res.status(400).json({ error: `Erreur Multer : ${err.message}` });
-  } else if (err) {
-    // Autres erreurs (par ex. : type de fichier non supporté)
-    return res.status(400).json({ error: err.message });
-  }
-  next();
+  console.error('Erreur inattendue :', err.message);
+  res.status(500).json({ error: 'Erreur interne du serveur' });
 });
 
 module.exports = router;
