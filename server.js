@@ -53,6 +53,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erreur serveur' });
 });
 
+console.log('Routes importées :', {
+  clients: !!clientRoutes,
+  projects: !!projectRoutes,
+  contact: !!contactRoutes,
+  upload: !!uploadRoutes
+});
+
 // Fonction pour se connecter à MongoDB
 const connectDB = async () => {
   try {
