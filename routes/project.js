@@ -35,25 +35,29 @@ const upload = multer({
 // Route pour créer un projet avec ou sans image
 router.post('/', upload.single('image'), async (req, res) => {
   try {
+    // Vérification des champs obligatoires
     const { title, category, description } = req.body;
     if (!title || !category || !description) {
       return res.status(400).json({ message: 'Tous les champs sont requis' });
     }
 
+    // Vérifier si l'image a été téléchargée
     let imageUrl = null;
     if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`;
+      imageUrl = `/uploads/${req.file.filename}`; // URL de l'image
     }
 
+    // Créer un projet avec l'image (si elle existe) ou sans image
     const project = new Project({
       title,
       category,
       description,
-      image: imageUrl,
+      image: imageUrl,  // Ajouter le chemin de l'image (si elle existe)
     });
 
+    // Sauvegarder le projet dans la base de données
     await project.save();
-    res.status(201).json(project);
+    res.status(201).json(project); // Retourner le projet créé avec l'image ou sans image
   } catch (err) {
     console.error('Erreur lors de la création du projet:', err);
     res.status(500).json({ message: 'Erreur lors de la création du projet', error: err.message });
@@ -126,7 +130,9 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Projet non trouvé' });
     }
 
+    // Supprimer le projet de la base de données
     await Project.findByIdAndDelete(id);
+
     res.status(200).json({ message: 'Projet supprimé avec succès' });
   } catch (err) {
     console.error('Erreur serveur:', err);

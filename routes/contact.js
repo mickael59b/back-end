@@ -39,14 +39,12 @@ router.post('/', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Erreur lors de la vérification reCAPTCHA.' });
     }
 
-    // Configurer le transporteur Nodemailer
+    // Configurer le transporteur Nodemailer avec Gmail
     const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT, 10),
-        secure: process.env.EMAIL_PORT === '465', // Utiliser SSL pour le port 465
+        service: 'gmail',
         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
+            user: process.env.EMAIL_USER, // Votre adresse Gmail
+            pass: process.env.EMAIL_PASS, // Mot de passe d'application
         },
     });
 
