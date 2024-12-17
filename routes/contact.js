@@ -3,30 +3,34 @@ const axios = require('axios');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
-// Gestionnaire de la route POST pour /api/contact
 router.post('/', async (req, res) => {
+    console.log('Contact route hit. Request body:', req.body); // Log incoming request
+
     const { firstName, lastName, email, message, recaptchaToken } = req.body;
 
-    // Vérifier que tous les champs sont fournis
+    // Detailed validation logging
+    if (!firstName) console.log('Missing firstName');
+    if (!lastName) console.log('Missing lastName');
+    if (!email) console.log('Missing email');
+    if (!message) console.log('Missing message');
+    if (!recaptchaToken) console.log('Missing recaptchaToken');
+
+    // Existing validation checks...
     if (!firstName || !lastName || !email || !message || !recaptchaToken) {
         return res.status(400).json({ error: 'Tous les champs sont requis.' });
     }
 
-    // Validation de l'email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: "L'email fourni est invalide." });
-    }
-
-    // Validation du message
-    if (message.length < 10) {
-        return res.status(400).json({ error: 'Votre message doit contenir au moins 10 caractères.' });
-    }
-
     try {
-        // Vérification du reCAPTCHA
+        // Additional logging for reCAPTCHA verification
+        console.log('Verifying reCAPTCHA with secret key:', process.env.RECAPTCHA_SECRET_KEY ? 'Present' : 'Missing');
+        
         const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-        const response = await axios.post(
+        if (!secretKey) {
+            console.error('reCAPTCHA secret key is not set');
+            return res.status(500).json({ error: 'Configuration serveur incorrecte' });
+        }
+
+        const recaptchaResponse = await axios.post(
             `https://www.google.com/recaptcha/api/siteverify`,
             null,
             {
@@ -37,13 +41,18 @@ router.post('/', async (req, res) => {
             }
         );
 
-        if (!response.data.success || response.data.score < 0.5) {
+        console.log('reCAPTCHA verification result:', recaptchaResponse.data);
+
+        if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
+            console.log('reCAPTCHA verification failed', recaptchaResponse.data);
             return res.status(400).json({
                 error: 'reCAPTCHA échoué. Veuillez réessayer.',
             });
         }
 
-        // Envoi de l'email
+        // Email configuration logging
+        console.log('Configuring email transport with Gmail user:', process.env.GMAIL_USER ? 'Present' : 'Missing');
+
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -52,9 +61,11 @@ router.post('/', async (req, res) => {
             },
         });
 
+        console.log('Sending email to:', process.env.RECIPIENT_EMAIL);
+
         await transporter.sendMail({
             from: `"Contact Portfolio" <${process.env.GMAIL_USER}>`,
-            to: process.env.RECIPIENT_EMAIL, // Remplacer par l'email du destinataire
+            to: process.env.RECIPIENT_EMAIL,
             subject: `Nouveau message de ${firstName} ${lastName}`,
             text: `
                 Nom : ${firstName} ${lastName}
@@ -63,9 +74,15 @@ router.post('/', async (req, res) => {
             `,
         });
 
+        console.log('Email sent successfully');
         return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
+
     } catch (error) {
-        console.error('Erreur lors de l\'envoi du message :', error);
+        console.error('Erreur détaillée lors de l\'envoi du message :', {
+            message: error.message,
+            stack: error.stack,
+            response: error.response ? error.response.data : 'No response data'
+        });
         return res.status(500).json({ error: 'Erreur serveur lors de l\'envoi du message.' });
     }
 });
