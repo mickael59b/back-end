@@ -11,7 +11,7 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Tous les champs sont obligatoires.' });
     }
 
-    // Vérification du reCAPTCHA
+    // Vérification de reCAPTCHA
     try {
         const recaptchaResponse = await axios.post(
             `https://www.google.com/recaptcha/api/siteverify`,
@@ -24,10 +24,15 @@ router.post('/', async (req, res) => {
             }
         );
 
-        const { success, score } = recaptchaResponse.data;
+        const { success, score, 'error-codes': errorCodes } = recaptchaResponse.data;
 
+        // Vérifier si reCAPTCHA est valide et le score est suffisant
         if (!success || score < 0.5) {
-            return res.status(400).json({ success: false, message: 'Échec de la vérification reCAPTCHA.' });
+            return res.status(400).json({
+                success: false,
+                message: 'Échec de la vérification reCAPTCHA.',
+                ...(errorCodes && { errorCodes }),
+            });
         }
     } catch (error) {
         console.error('Erreur reCAPTCHA:', error.message);
@@ -37,13 +42,22 @@ router.post('/', async (req, res) => {
     // Configurer le transporteur Nodemailer
     const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT,
-        secure: false, // true pour le port 465, false pour 587
+        port: parseInt(process.env.EMAIL_PORT, 10),
+        secure: process.env.EMAIL_PORT === '465', // Utiliser SSL pour le port 465
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
         },
     });
+
+    // Vérifier la connexion SMTP
+    try {
+        await transporter.verify();
+        console.log('Connexion SMTP réussie.');
+    } catch (err) {
+        console.error('Erreur de connexion SMTP :', err.message);
+        return res.status(500).json({ success: false, message: 'Erreur de connexion au serveur SMTP.' });
+    }
 
     // Contenu de l'e-mail
     const mailOptions = {
