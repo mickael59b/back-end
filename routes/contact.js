@@ -1,72 +1,58 @@
 const express = require('express');
-const axios = require('axios');
-const nodemailer = require('nodemailer');
 const router = express.Router();
+const nodemailer = require('nodemailer'); // Si tu veux envoyer des emails
+const { body, validationResult } = require('express-validator');
 
-router.post('/', async (req, res) => {
-    try {
-        console.log('Form data received:', req.body);
-        
-        const { firstName, lastName, email, message, recaptchaToken } = req.body;
-        
-        // Vérifier si tous les champs sont présents
-        if (!firstName || !lastName || !email || !message || !recaptchaToken) {
-            console.error('Un champ obligatoire est manquant!');
-            return res.status(400).json({ success: false, message: 'Tous les champs sont obligatoires.' });
-        }
+// Route POST pour recevoir le message de contact
+router.post('/', [
+  body('firstName').notEmpty().withMessage('Le prénom est requis.'),
+  body('lastName').notEmpty().withMessage('Le nom est requis.'),
+  body('email').isEmail().withMessage('Veuillez fournir un email valide.'),
+  body('message').isLength({ min: 10 }).withMessage('Le message doit contenir au moins 10 caractères.')
+], async (req, res) => {
+  // Valider les données
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-        console.log('Vérification reCAPTCHA...');
-        const recaptchaResponse = await axios.post(
-            'https://www.google.com/recaptcha/api/siteverify',
-            null,
-            {
-                params: {
-                    secret: process.env.RECAPTCHA_SECRET_KEY,
-                    response: recaptchaToken,
-                },
-            }
-        );
-        console.log('Réponse de la validation reCAPTCHA:', recaptchaResponse.data);
+  const { firstName, lastName, email, message, recaptchaToken } = req.body;
 
-        if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
-            console.error('Échec de la validation reCAPTCHA.');
-            return res.status(400).json({
-                success: false,
-                message: 'Échec de la vérification reCAPTCHA.',
-            });
-        }
+  // Vérification du reCAPTCHA (tu peux ajouter une vérification côté serveur ici)
+  const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY; // Clé privée du reCAPTCHA
+  const recaptchaResponse = await axios.post(
+    `https://www.google.com/recaptcha/api/siteverify?secret=${recaptchaSecretKey}&response=${recaptchaToken}`
+  );
 
-        // Configuration de Nodemailer
-        const transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST,
-            port: parseInt(process.env.EMAIL_PORT, 10),
-            secure: process.env.EMAIL_PORT === '465',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
+  if (!recaptchaResponse.data.success) {
+    return res.status(400).json({ message: 'reCAPTCHA invalide. Veuillez réessayer.' });
+  }
 
-        console.log('Envoi de l\'email...');
-        await transporter.sendMail({
-            from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER,
-            subject: 'Nouveau message depuis le formulaire de contact',
-            html: `
-                <p><strong>Prénom:</strong> ${firstName}</p>
-                <p><strong>Nom:</strong> ${lastName}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Message:</strong> ${message}</p>
-            `,
-        });
+  try {
+    // Si tu souhaites envoyer un email de contact
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Exemple pour Gmail
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-        console.log('Email envoyé avec succès!');
-        return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
-    } catch (error) {
-        console.error('Erreur serveur:', error.message);
-        console.error(error.stack);
-        return res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
-    }
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: 'ton.email@domaine.com', // Ton email pour recevoir les messages
+      subject: 'Nouveau message de contact',
+      text: `Vous avez reçu un message de ${firstName} ${lastName} (${email}) :\n\n${message}`,
+    };
+
+    // Envoi du message
+    await transporter.sendMail(mailOptions);
+    return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
+
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi du message :', error);
+    return res.status(500).json({ message: 'Erreur serveur. Veuillez réessayer plus tard.' });
+  }
 });
 
 module.exports = router;
