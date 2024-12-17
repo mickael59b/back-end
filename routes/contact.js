@@ -24,8 +24,8 @@ router.post('/', [
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: 'mboutte621@gmail.com',  // Remplace avec ton email
+        pass: 'mhyk nswn gvud jcwf', // Remplace par le mot de passe d'application de 16 caractères
       },
     });
   
