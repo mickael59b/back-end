@@ -42,11 +42,6 @@ app.use('/api/projects', projectRoutes); // Gestion des projets
 app.use('/api/contact', contactRoutes); // Gestion des contacts
 app.use('/api/upload', uploadRoutes); // Gestion des fichiers uploadés
 
-// Route de base pour vérifier si l'API fonctionne
-app.get('/', (req, res) => {
-  res.send('API fonctionne !');
-});
-
 // Gestion des routes non trouvées
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Route non trouvée' });
