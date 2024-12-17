@@ -31,7 +31,7 @@ router.post('/', [
   
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: 'ton.email@domaine.com',
+      to: 'mboutte621@gmail.com',
       subject: 'Nouveau message de contact',
       text: `Vous avez reçu un message de ${firstName} ${lastName} (${email}) :\n\n${message}`,
     };
