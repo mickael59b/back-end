@@ -4,69 +4,71 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-    console.log('Contact route hit. Request body:', req.body);
-
     const { firstName, lastName, email, message, recaptchaToken } = req.body;
 
-    // Validation des champs
-    if (!firstName || !lastName || !email || !message) {
-        return res.status(400).json({ error: 'Tous les champs sont requis.' });
+    // Vérifier les champs obligatoires
+    if (!firstName || !lastName || !email || !message || !recaptchaToken) {
+        return res.status(400).json({ success: false, message: 'Tous les champs sont obligatoires.' });
     }
 
+    // Vérification du reCAPTCHA
     try {
-        // Contournement reCAPTCHA pour développement/Postman
-        if (process.env.NODE_ENV === 'development' || recaptchaToken === 'bypass_recaptcha') {
-            console.log('reCAPTCHA verification bypassed');
-        } else {
-            const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-            if (!secretKey) {
-                console.error('reCAPTCHA secret key is not set');
-                return res.status(500).json({ error: 'Configuration serveur incorrecte' });
+        const recaptchaResponse = await axios.post(
+            `https://www.google.com/recaptcha/api/siteverify`,
+            null,
+            {
+                params: {
+                    secret: process.env.RECAPTCHA_SECRET_KEY,
+                    response: recaptchaToken,
+                },
             }
+        );
 
-            const recaptchaResponse = await axios.post(
-                `https://www.google.com/recaptcha/api/siteverify`,
-                null,
-                {
-                    params: {
-                        secret: secretKey,
-                        response: recaptchaToken,
-                    },
-                }
-            );
+        const { success, score } = recaptchaResponse.data;
 
-            if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
-                return res.status(400).json({
-                    error: 'reCAPTCHA échoué. Veuillez réessayer.',
-                });
-            }
+        if (!success || score < 0.5) {
+            return res.status(400).json({ success: false, message: 'Échec de la vérification reCAPTCHA.' });
         }
+    } catch (error) {
+        console.error('Erreur reCAPTCHA:', error.message);
+        return res.status(500).json({ success: false, message: 'Erreur lors de la vérification reCAPTCHA.' });
+    }
 
-        // Configuration du transporteur email
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_PASSWORD,
-            },
-        });
+    // Configurer le transporteur Nodemailer
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: false, // true pour le port 465, false pour 587
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+    });
 
-        // Envoi de l'email
-        await transporter.sendMail({
-            from: `"Contact Portfolio" <${process.env.GMAIL_USER}>`,
-            to: process.env.RECIPIENT_EMAIL,
-            subject: `Nouveau message de ${firstName} ${lastName}`,
-            text: `
-                Nom : ${firstName} ${lastName}
-                Email : ${email}
-                Message : ${message}
-            `,
-        });
+    // Contenu de l'e-mail
+    const mailOptions = {
+        from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`, // Adresse e-mail de l'expéditeur
+        to: process.env.EMAIL_USER, // Adresse e-mail du destinataire
+        subject: 'Nouveau message depuis le formulaire de contact',
+        html: `
+            <h3>Vous avez reçu un nouveau message</h3>
+            <p><strong>Prénom :</strong> ${firstName}</p>
+            <p><strong>Nom :</strong> ${lastName}</p>
+            <p><strong>Email :</strong> ${email}</p>
+            <p><strong>Message :</strong></p>
+            <p>${message}</p>
+        `,
+    };
 
+    try {
+        // Envoyer l'e-mail
+        await transporter.sendMail(mailOptions);
+
+        // Répondre au frontend
         return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
     } catch (error) {
-        console.error('Erreur lors de l\'envoi du message :', error);
-        return res.status(500).json({ error: 'Erreur serveur lors de l\'envoi du message.' });
+        console.error('Erreur lors de l\'envoi de l\'e-mail:', error.message);
+        return res.status(500).json({ success: false, message: 'Erreur lors de l\'envoi de l\'e-mail.' });
     }
 });
 
