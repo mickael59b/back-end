@@ -16,17 +16,7 @@ router.post('/', [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { firstName, lastName, email, message, recaptchaToken } = req.body;
-
-  // Vérification du reCAPTCHA (tu peux ajouter une vérification côté serveur ici)
-  const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY; // Clé privée du reCAPTCHA
-  const recaptchaResponse = await axios.post(
-    `https://www.google.com/recaptcha/api/siteverify?secret=${recaptchaSecretKey}&response=${recaptchaToken}`
-  );
-
-  if (!recaptchaResponse.data.success) {
-    return res.status(400).json({ message: 'reCAPTCHA invalide. Veuillez réessayer.' });
-  }
+  const { firstName, lastName, email, message } = req.body;
 
   try {
     // Si tu souhaites envoyer un email de contact
