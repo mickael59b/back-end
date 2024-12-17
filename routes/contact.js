@@ -8,16 +8,18 @@ router.post('/', async (req, res) => {
 
   // Vérification des champs obligatoires
   if (!firstName || !lastName || !email || !message || !recaptchaToken) {
+    console.log("Missing fields:", { firstName, lastName, email, message, recaptchaToken });
     return res.status(400).json({ success: false, message: 'All fields are required' });
   }
 
-  // Vérification du format de l'email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
+    console.log("Invalid email format:", email);
     return res.status(400).json({ success: false, message: 'Invalid email address' });
   }
 
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  console.log("Verifying reCAPTCHA with token:", recaptchaToken);
 
   try {
     // Vérification du token reCAPTCHA
@@ -32,7 +34,9 @@ router.post('/', async (req, res) => {
       }
     );
 
+    console.log("reCAPTCHA response:", verificationResponse.data);
     if (!verificationResponse.data.success || verificationResponse.data.score < 0.5) {
+      console.log("reCAPTCHA failed:", verificationResponse.data);
       return res.status(400).json({
         success: false,
         error: 'INVALID_CAPTCHA',
@@ -49,7 +53,7 @@ router.post('/', async (req, res) => {
       },
     });
 
-    await transporter.sendMail({
+    const mailOptions = {
       from: `"Portfolio Contact" <${process.env.GMAIL_USER}>`,
       to: process.env.RECIPIENT_EMAIL,
       subject: `Nouveau message de ${firstName} ${lastName}`,
@@ -59,7 +63,11 @@ router.post('/', async (req, res) => {
         Email: ${email}
         Message: ${message}
       `,
-    });
+    };
+
+    console.log("Sending email:", mailOptions);
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully");
 
     return res.json({ success: true, message: 'Message sent successfully' });
   } catch (error) {
