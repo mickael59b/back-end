@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer'); // Si tu veux envoyer des emails
@@ -24,8 +25,8 @@ router.post('/', [
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'mboutte621@gmail.com',  // Remplace avec ton email
-        pass: 'mhyk nswn gvud jcwf', // Remplace par le mot de passe d'application de 16 caractères
+        user: process.env.EMAIL_USER,  // Ton email depuis .env
+        pass: process.env.EMAIL_PASS,  // Ton mot de passe d'application depuis .env
       },
     });
   
