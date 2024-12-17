@@ -3,78 +3,71 @@ const axios = require('axios');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
+// Gestionnaire de la route POST pour /api/contact
 router.post('/', async (req, res) => {
-  const { firstName, lastName, email, message, recaptchaToken } = req.body;
+    const { firstName, lastName, email, message, recaptchaToken } = req.body;
 
-  // Vérification des champs obligatoires
-  if (!firstName || !lastName || !email || !message || !recaptchaToken) {
-    console.log("Missing fields:", { firstName, lastName, email, message, recaptchaToken });
-    return res.status(400).json({ success: false, message: 'All fields are required' });
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    console.log("Invalid email format:", email);
-    return res.status(400).json({ success: false, message: 'Invalid email address' });
-  }
-
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  console.log("Verifying reCAPTCHA with token:", recaptchaToken);
-
-  try {
-    // Vérification du token reCAPTCHA
-    const verificationResponse = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify`,
-      null,
-      {
-        params: {
-          secret: secretKey,
-          response: recaptchaToken,
-        },
-      }
-    );
-
-    console.log("reCAPTCHA response:", verificationResponse.data);
-    if (!verificationResponse.data.success || verificationResponse.data.score < 0.5) {
-      console.log("reCAPTCHA failed:", verificationResponse.data);
-      return res.status(400).json({
-        success: false,
-        error: 'INVALID_CAPTCHA',
-        message: 'reCAPTCHA verification failed. Please try again.',
-      });
+    // Vérifier que tous les champs sont fournis
+    if (!firstName || !lastName || !email || !message || !recaptchaToken) {
+        return res.status(400).json({ error: 'Tous les champs sont requis.' });
     }
 
-    // Envoi de l'email
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASSWORD,
-      },
-    });
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "L'email fourni est invalide." });
+    }
 
-    const mailOptions = {
-      from: `"Portfolio Contact" <${process.env.GMAIL_USER}>`,
-      to: process.env.RECIPIENT_EMAIL,
-      subject: `Nouveau message de ${firstName} ${lastName}`,
-      text: `
-        Prénom: ${firstName}
-        Nom: ${lastName}
-        Email: ${email}
-        Message: ${message}
-      `,
-    };
+    // Validation du message
+    if (message.length < 10) {
+        return res.status(400).json({ error: 'Votre message doit contenir au moins 10 caractères.' });
+    }
 
-    console.log("Sending email:", mailOptions);
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully");
+    try {
+        // Vérification du reCAPTCHA
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+        const response = await axios.post(
+            `https://www.google.com/recaptcha/api/siteverify`,
+            null,
+            {
+                params: {
+                    secret: secretKey,
+                    response: recaptchaToken,
+                },
+            }
+        );
 
-    return res.json({ success: true, message: 'Message sent successfully' });
-  } catch (error) {
-    console.error('Error occurred:', error);
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
+        if (!response.data.success || response.data.score < 0.5) {
+            return res.status(400).json({
+                error: 'reCAPTCHA échoué. Veuillez réessayer.',
+            });
+        }
+
+        // Envoi de l'email
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_PASSWORD,
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"Contact Portfolio" <${process.env.GMAIL_USER}>`,
+            to: process.env.RECIPIENT_EMAIL, // Remplacer par l'email du destinataire
+            subject: `Nouveau message de ${firstName} ${lastName}`,
+            text: `
+                Nom : ${firstName} ${lastName}
+                Email : ${email}
+                Message : ${message}
+            `,
+        });
+
+        return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
+    } catch (error) {
+        console.error('Erreur lors de l\'envoi du message :', error);
+        return res.status(500).json({ error: 'Erreur serveur lors de l\'envoi du message.' });
+    }
 });
 
 module.exports = router;
-

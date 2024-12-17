@@ -32,10 +32,10 @@ app.use(bodyParser.urlencoded({ extended: true })); // Permettre les données de
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Importer et définir les routes
-const clientRoutes = require('./routes/clients');
-const projectRoutes = require('./routes/project');
-const contactRoutes = require('./routes/contact');
-const uploadRoutes = require('./routes/upload'); // Gestion des uploads
+const clientRoutes = require('./routes/clients');  // Gestion des clients
+const projectRoutes = require('./routes/project'); // Gestion des projets
+const contactRoutes = require('./routes/contact'); // Gestion des contacts
+const uploadRoutes = require('./routes/upload'); // Gestion des fichiers uploadés
 
 app.use('/api/clients', clientRoutes); // Gestion des clients
 app.use('/api/projects', projectRoutes); // Gestion des projets
@@ -61,7 +61,7 @@ app.use((err, req, res, next) => {
 // Fonction pour se connecter à MongoDB
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log('MongoDB connecté');
   } catch (err) {
     console.error('Erreur de connexion MongoDB :', err.message);
