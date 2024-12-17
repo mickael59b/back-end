@@ -5,7 +5,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet'); // Pour sécuriser les en-têtes HTTP
+const helmet = require('helmet');
 const authMiddleware = require('./middleware/authMiddleware'); // Importer le middleware d'authentification
 
 // Initialiser l'application Express
@@ -39,19 +39,18 @@ app.use(bodyParser.urlencoded({ extended: true })); // Permettre les données de
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Importer et définir les routes
-const clientRoutes = require('./routes/clients');  // Gestion des clients
-const projectRoutes = require('./routes/project'); // Gestion des projets
-const contactRoutes = require('./routes/contact'); // Gestion des contacts
-const uploadRoutes = require('./routes/upload'); // Gestion des fichiers uploadés
+const clientRoutes = require('./routes/clients');
+const projectRoutes = require('./routes/project');
+const contactRoutes = require('./routes/contact');
+const uploadRoutes = require('./routes/upload');
 
 // Définir les routes
-app.use('/api/clients', clientRoutes); // Gestion des clients
-app.use('/api/projects', projectRoutes); // Gestion des projets
-app.use('/api/contact', contactRoutes); // Gestion des contacts
-app.use('/api/upload', uploadRoutes); // Gestion des fichiers uploadés
+app.use('/api/clients', clientRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Protéger certaines routes avec le middleware d'authentification
-// Exemple: Toute route nécessitant une authentification passe par le middleware `authMiddleware`
 app.use('/api/projects', authMiddleware, projectRoutes); // Protéger la route des projets
 app.use('/api/clients', authMiddleware, clientRoutes); // Protéger la route des clients
 
