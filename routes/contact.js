@@ -6,11 +6,15 @@ const router = express.Router();
 router.post('/', async (req, res) => {
     const { firstName, lastName, email, message, recaptchaToken } = req.body;
 
+    // Vérification des champs obligatoires
     if (!firstName || !lastName || !email || !message || !recaptchaToken) {
+        console.error('Erreur: Champs manquants dans le formulaire.');
         return res.status(400).json({ success: false, message: 'Tous les champs sont obligatoires.' });
     }
 
     try {
+        // Vérification de reCAPTCHA
+        console.log('Vérification de reCAPTCHA...');
         const recaptchaResponse = await axios.post(
             'https://www.google.com/recaptcha/api/siteverify',
             null,
@@ -23,15 +27,20 @@ router.post('/', async (req, res) => {
         );
 
         if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
+            console.error('Échec de la vérification reCAPTCHA.');
             return res.status(400).json({
                 success: false,
                 message: 'Échec de la vérification reCAPTCHA.',
             });
         }
+
+        console.log('reCAPTCHA validé avec succès.');
     } catch (error) {
+        console.error('Erreur lors de la vérification reCAPTCHA:', error);
         return res.status(500).json({ success: false, message: 'Erreur lors de la vérification reCAPTCHA.' });
     }
 
+    // Configuration du transporteur Nodemailer
     const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: parseInt(process.env.EMAIL_PORT, 10),
@@ -43,6 +52,8 @@ router.post('/', async (req, res) => {
     });
 
     try {
+        // Envoi de l'email
+        console.log('Envoi de l\'email...');
         await transporter.sendMail({
             from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
             to: process.env.EMAIL_USER,
@@ -54,8 +65,10 @@ router.post('/', async (req, res) => {
                 <p><strong>Message:</strong> ${message}</p>
             `,
         });
+        console.log('Message envoyé avec succès.');
         res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
     } catch (error) {
+        console.error('Erreur lors de l\'envoi de l\'email:', error);
         res.status(500).json({ success: false, message: "Erreur lors de l'envoi de l'email." });
     }
 });
