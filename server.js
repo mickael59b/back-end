@@ -16,6 +16,12 @@ if (!process.env.MONGO_URI) {
   process.exit(1); // Arrêter le serveur si la configuration critique manque
 }
 
+// Middleware pour journaliser les requêtes API
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Création du dossier 'uploads' s'il n'existe pas
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -37,10 +43,17 @@ const projectRoutes = require('./routes/project'); // Gestion des projets
 const contactRoutes = require('./routes/contact'); // Gestion des contacts
 const uploadRoutes = require('./routes/upload'); // Gestion des fichiers uploadés
 
+// Définir les routes
 app.use('/api/clients', clientRoutes); // Gestion des clients
 app.use('/api/projects', projectRoutes); // Gestion des projets
 app.use('/api/contact', contactRoutes); // Gestion des contacts
 app.use('/api/upload', uploadRoutes); // Gestion des fichiers uploadés
+
+// Route de base pour vérifier si l'API fonctionne
+app.get('/', (req, res) => {
+  console.log("Accès à la racine de l'API");
+  res.send('API fonctionne !');
+});
 
 // Gestion des routes non trouvées
 app.use((req, res, next) => {
@@ -53,13 +66,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erreur serveur' });
 });
 
-console.log('Routes importées :', {
-  clients: !!clientRoutes,
-  projects: !!projectRoutes,
-  contact: !!contactRoutes,
-  upload: !!uploadRoutes
-});
-
 // Fonction pour se connecter à MongoDB
 const connectDB = async () => {
   try {
@@ -67,7 +73,7 @@ const connectDB = async () => {
     console.log('MongoDB connecté');
   } catch (err) {
     console.error('Erreur de connexion MongoDB :', err.message);
-    process.exit(1); // Arrêter l'application si la connexion échoue
+    setTimeout(connectDB, 5000); // Réessayer la connexion après 5 secondes en cas d'erreur
   }
 };
 
