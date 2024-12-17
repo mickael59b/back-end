@@ -2,14 +2,21 @@ const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const Project = require('../models/Project'); // Modèle Mongoose pour les projets
 
 const router = express.Router();
 
+// Créer le dossier 'uploads' s'il n'existe pas
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
 // Configuration de multer pour l'upload d'images
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Dossier où les images seront enregistrées
+    cb(null, uploadsDir); // Dossier où les images seront enregistrées
   },
   filename: function (req, file, cb) {
     // Utiliser un nom de fichier unique basé sur l'horodatage et l'extension de l'image
@@ -27,7 +34,7 @@ const upload = multer({
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb('Erreur : Ce fichier n\'est pas une image');
+      cb(new Error('Erreur : Ce fichier n\'est pas une image.'));
     }
   }
 });
