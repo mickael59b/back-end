@@ -4,17 +4,18 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-    const { firstName, lastName, email, message, recaptchaToken } = req.body;
-
-    // Vérification des champs obligatoires
-    if (!firstName || !lastName || !email || !message || !recaptchaToken) {
-        console.error('Erreur: Champs manquants dans le formulaire.');
-        return res.status(400).json({ success: false, message: 'Tous les champs sont obligatoires.' });
-    }
-
     try {
-        // Vérification de reCAPTCHA
-        console.log('Vérification de reCAPTCHA...');
+        console.log('Form data received:', req.body);
+        
+        const { firstName, lastName, email, message, recaptchaToken } = req.body;
+        
+        // Vérifier si tous les champs sont présents
+        if (!firstName || !lastName || !email || !message || !recaptchaToken) {
+            console.error('Un champ obligatoire est manquant!');
+            return res.status(400).json({ success: false, message: 'Tous les champs sont obligatoires.' });
+        }
+
+        console.log('Vérification reCAPTCHA...');
         const recaptchaResponse = await axios.post(
             'https://www.google.com/recaptcha/api/siteverify',
             null,
@@ -25,36 +26,27 @@ router.post('/', async (req, res) => {
                 },
             }
         );
+        console.log('Réponse de la validation reCAPTCHA:', recaptchaResponse.data);
 
-        console.log('reCAPTCHA response:', recaptchaResponse.data);
-        
         if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
-            console.error('Échec de la vérification reCAPTCHA.');
+            console.error('Échec de la validation reCAPTCHA.');
             return res.status(400).json({
                 success: false,
                 message: 'Échec de la vérification reCAPTCHA.',
             });
         }
 
-        console.log('reCAPTCHA validé avec succès.');
-    } catch (error) {
-        console.error('Erreur lors de la vérification reCAPTCHA:', error.message);
-        return res.status(500).json({ success: false, message: 'Erreur lors de la vérification reCAPTCHA.' });
-    }
+        // Configuration de Nodemailer
+        const transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST,
+            port: parseInt(process.env.EMAIL_PORT, 10),
+            secure: process.env.EMAIL_PORT === '465',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
 
-    // Configuration du transporteur Nodemailer
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT, 10),
-        secure: process.env.EMAIL_PORT === '465',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        },
-    });
-
-    try {
-        // Envoi de l'email
         console.log('Envoi de l\'email...');
         await transporter.sendMail({
             from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
@@ -67,12 +59,13 @@ router.post('/', async (req, res) => {
                 <p><strong>Message:</strong> ${message}</p>
             `,
         });
-        console.log('Message envoyé avec succès.');
-        res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
+
+        console.log('Email envoyé avec succès!');
+        return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
     } catch (error) {
-        console.error('Erreur lors de l\'envoi de l\'email:', error.message);
+        console.error('Erreur serveur:', error.message);
         console.error(error.stack);
-        res.status(500).json({ success: false, message: "Erreur lors de l'envoi de l'email." });
+        return res.status(500).json({ success: false, message: 'Erreur interne du serveur.' });
     }
 });
 
