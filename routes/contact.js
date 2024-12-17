@@ -20,6 +20,8 @@ router.post('/', [
 
   const { firstName, lastName, email, message } = req.body;
 
+  console.log(process.env.EMAIL_USER);
+
   // Si tu veux envoyer un email de contact
   try {
     const transporter = nodemailer.createTransport({
