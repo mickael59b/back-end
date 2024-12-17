@@ -26,6 +26,8 @@ router.post('/', async (req, res) => {
             }
         );
 
+        console.log('reCAPTCHA response:', recaptchaResponse.data);
+        
         if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
             console.error('Échec de la vérification reCAPTCHA.');
             return res.status(400).json({
@@ -36,7 +38,7 @@ router.post('/', async (req, res) => {
 
         console.log('reCAPTCHA validé avec succès.');
     } catch (error) {
-        console.error('Erreur lors de la vérification reCAPTCHA:', error);
+        console.error('Erreur lors de la vérification reCAPTCHA:', error.message);
         return res.status(500).json({ success: false, message: 'Erreur lors de la vérification reCAPTCHA.' });
     }
 
@@ -68,7 +70,8 @@ router.post('/', async (req, res) => {
         console.log('Message envoyé avec succès.');
         res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
     } catch (error) {
-        console.error('Erreur lors de l\'envoi de l\'email:', error);
+        console.error('Erreur lors de l\'envoi de l\'email:', error.message);
+        console.error(error.stack);
         res.status(500).json({ success: false, message: "Erreur lors de l'envoi de l'email." });
     }
 });
