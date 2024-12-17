@@ -22,32 +22,36 @@ router.post('/', [
   // Si tu veux envoyer un email de contact
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // Exemple pour Gmail
+      service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,  // Ton adresse email
-        pass: process.env.EMAIL_PASS,  // Ton mot de passe ou une clé API pour l'authentification
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
-
+  
     const mailOptions = {
-      from: process.env.EMAIL_USER,  // Ton adresse email
-      to: 'mboutte621@gmail.com',   // Ton email de réception
+      from: process.env.EMAIL_USER,
+      to: 'ton.email@domaine.com',
       subject: 'Nouveau message de contact',
       text: `Vous avez reçu un message de ${firstName} ${lastName} (${email}) :\n\n${message}`,
     };
-
-    // Envoi du message
+  
+    // Envoi de l'email
     await transporter.sendMail(mailOptions);
     
-    // Répondre avec un succès
+    console.log('Email envoyé avec succès');
+  
     return res.status(200).json({
       success: true,
       message: 'Données validées et formulaire reçu.'
     });
-
+  
   } catch (error) {
-    console.error('Erreur lors de l\'envoi du message :', error);
-    return res.status(500).json({ message: 'Erreur serveur. Veuillez réessayer plus tard.' });
+    console.error('Erreur lors de l\'envoi de l\'email :', error);
+    return res.status(500).json({
+      message: 'Erreur serveur. Veuillez réessayer plus tard.',
+      error: error.message, // Ajout du message d'erreur pour plus de détails
+    });
   }
 });
 
