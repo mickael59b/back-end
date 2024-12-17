@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const helmet = require('helmet'); // Pour sécuriser les en-têtes HTTP
+const authMiddleware = require('./middleware/authMiddleware'); // Importer le middleware d'authentification
 
 // Initialiser l'application Express
 const app = express();
@@ -48,6 +49,11 @@ app.use('/api/clients', clientRoutes); // Gestion des clients
 app.use('/api/projects', projectRoutes); // Gestion des projets
 app.use('/api/contact', contactRoutes); // Gestion des contacts
 app.use('/api/upload', uploadRoutes); // Gestion des fichiers uploadés
+
+// Protéger certaines routes avec le middleware d'authentification
+// Exemple: Toute route nécessitant une authentification passe par le middleware `authMiddleware`
+app.use('/api/projects', authMiddleware, projectRoutes); // Protéger la route des projets
+app.use('/api/clients', authMiddleware, clientRoutes); // Protéger la route des clients
 
 // Route de base pour vérifier si l'API fonctionne
 app.get('/', (req, res) => {
