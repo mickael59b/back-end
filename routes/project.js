@@ -1,11 +1,39 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const path = require('path');
 const Project = require('../models/Project'); // Modèle Mongoose pour les projets
 
 const router = express.Router();
 
-// Route pour créer un projet sans image
-router.post('/', async (req, res) => {
+// Configuration de multer pour l'upload d'images
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Dossier où les images seront enregistrées
+  },
+  filename: function (req, file, cb) {
+    // Utiliser un nom de fichier unique basé sur l'horodatage et l'extension de l'image
+    cb(null, Date.now() + path.extname(file.originalname)); 
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb('Erreur : Ce fichier n\'est pas une image');
+    }
+  }
+});
+
+// Route pour créer un projet avec ou sans image
+router.post('/', upload.single('image'), async (req, res) => {
   try {
     // Vérification des champs obligatoires
     const { title, category, description } = req.body;
@@ -13,16 +41,23 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Tous les champs sont requis' });
     }
 
-    // Créer un projet sans image
+    // Vérifier si l'image a été téléchargée
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`; // URL de l'image
+    }
+
+    // Créer un projet avec l'image (si elle existe) ou sans image
     const project = new Project({
       title,
       category,
       description,
+      image: imageUrl,  // Ajouter le chemin de l'image (si elle existe)
     });
 
     // Sauvegarder le projet dans la base de données
     await project.save();
-    res.status(201).json(project); // Retourner le projet créé
+    res.status(201).json(project); // Retourner le projet créé avec l'image ou sans image
   } catch (err) {
     console.error('Erreur lors de la création du projet:', err);
     res.status(500).json({ message: 'Erreur lors de la création du projet', error: err.message });
