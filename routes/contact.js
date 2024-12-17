@@ -1,4 +1,9 @@
 require('dotenv').config();
+console.log("PORT:", process.env.PORT || "Non trouvé");
+console.log("MONGO_URI:", process.env.MONGO_URI || "Non trouvé");
+console.log("RECAPTCHA_SECRET_KEY:", process.env.RECAPTCHA_SECRET_KEY || "Non trouvé");
+console.log("EMAIL_USER:", process.env.EMAIL_USER || "Non trouvé");
+console.log("EMAIL_PASS:", process.env.EMAIL_PASS || "Non trouvé");
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer'); // Si tu veux envoyer des emails
