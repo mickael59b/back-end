@@ -4,12 +4,14 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  const { name, email, message, captchaToken } = req.body;
+  const { firstName, lastName, email, message, recaptchaToken } = req.body;
 
-  if (!name || !email || !message || !captchaToken) {
+  // Vérification des champs obligatoires
+  if (!firstName || !lastName || !email || !message || !recaptchaToken) {
     return res.status(400).json({ success: false, message: 'All fields are required' });
   }
 
+  // Vérification du format de l'email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ success: false, message: 'Invalid email address' });
@@ -18,14 +20,14 @@ router.post('/', async (req, res) => {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 
   try {
-    // Vérification du reCAPTCHA
+    // Vérification du token reCAPTCHA
     const verificationResponse = await axios.post(
       `https://www.google.com/recaptcha/api/siteverify`,
       null,
       {
         params: {
           secret: secretKey,
-          response: captchaToken,
+          response: recaptchaToken,
         },
       }
     );
@@ -38,7 +40,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Envoi d'email
+    // Envoi de l'email
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -50,15 +52,15 @@ router.post('/', async (req, res) => {
     await transporter.sendMail({
       from: `"Portfolio Contact" <${process.env.GMAIL_USER}>`,
       to: process.env.RECIPIENT_EMAIL,
-      subject: `Nouveau message de ${name}`,
+      subject: `Nouveau message de ${firstName} ${lastName}`,
       text: `
-        Nom: ${name}
+        Prénom: ${firstName}
+        Nom: ${lastName}
         Email: ${email}
         Message: ${message}
       `,
     });
 
-    console.log('Email sent successfully');
     return res.json({ success: true, message: 'Message sent successfully' });
   } catch (error) {
     console.error('Error occurred:', error);
