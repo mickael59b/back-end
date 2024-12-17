@@ -10,23 +10,42 @@ router.post('/', [
   body('email').isEmail().withMessage('Veuillez fournir un email valide.'),
   body('message').isLength({ min: 10 }).withMessage('Le message doit contenir au moins 10 caractères.')
 ], async (req, res) => {
-  console.log('Requête reçue:', req.body);  // Log les données envoyées par le front-end
+  // Affichage dans la console des données reçues
+  console.log("Données reçues du formulaire:", req.body);
 
+  // Valider les données
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('Erreur de validation:', errors.array());  // Log les erreurs de validation
     return res.status(400).json({ errors: errors.array() });
   }
 
-  // Valider les données avant d'envoyer une réponse
   const { firstName, lastName, email, message } = req.body;
-  console.log('Données validées:', { firstName, lastName, email, message });
 
   try {
-    // Simuler une réponse de succès sans envoyer de message
-    return res.status(200).json({ success: true, message: 'Données validées et formulaire reçu.' });
+    // Si tu souhaites envoyer un email de contact
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Exemple pour Gmail
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: 'ton.email@domaine.com', // Ton email pour recevoir les messages
+      subject: 'Nouveau message de contact',
+      text: `Vous avez reçu un message de ${firstName} ${lastName} (${email}) :\n\n${message}`,
+    };
+
+    // Envoi du message
+    await transporter.sendMail(mailOptions);
+    
+    // Retourner les données du formulaire en plus du message de succès
+    return res.status(200).json({ success: true, message: 'Données validées et formulaire reçu.', formData: req.body });
+
   } catch (error) {
-    console.error('Erreur lors de la validation:', error);  // Log l'erreur si elle survient
+    console.error('Erreur lors de l\'envoi du message :', error);
     return res.status(500).json({ message: 'Erreur serveur. Veuillez réessayer plus tard.' });
   }
 });
