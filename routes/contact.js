@@ -10,38 +10,23 @@ router.post('/', [
   body('email').isEmail().withMessage('Veuillez fournir un email valide.'),
   body('message').isLength({ min: 10 }).withMessage('Le message doit contenir au moins 10 caractères.')
 ], async (req, res) => {
-  console.log('Requête reçue:', req.body);  // Affiche les données reçues
+  console.log('Requête reçue:', req.body);  // Log les données envoyées par le front-end
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('Erreur de validation:', errors.array());  // Affiche les erreurs de validation si présentes
+    console.log('Erreur de validation:', errors.array());  // Log les erreurs de validation
     return res.status(400).json({ errors: errors.array() });
   }
 
+  // Valider les données avant d'envoyer une réponse
   const { firstName, lastName, email, message } = req.body;
-  console.log('Données validées:', { firstName, lastName, email, message }); // Vérifie que les données sont validées correctement
+  console.log('Données validées:', { firstName, lastName, email, message });
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: 'ton.email@domaine.com',
-      subject: 'Nouveau message de contact',
-      text: `Vous avez reçu un message de ${firstName} ${lastName} (${email}) :\n\n${message}`,
-    };
-
-    console.log('Options d\'email:', mailOptions);  // Vérifie les options de l'email avant l'envoi
-    await transporter.sendMail(mailOptions);
-    console.log('Email envoyé avec succès'); // Si l'email est envoyé sans erreur
-    return res.status(200).json({ success: true, message: 'Message envoyé avec succès.' });
+    // Simuler une réponse de succès sans envoyer de message
+    return res.status(200).json({ success: true, message: 'Données validées et formulaire reçu.' });
   } catch (error) {
-    console.error('Erreur lors de l\'envoi de l\'email:', error);  // Log d'erreur détaillé
+    console.error('Erreur lors de la validation:', error);  // Log l'erreur si elle survient
     return res.status(500).json({ message: 'Erreur serveur. Veuillez réessayer plus tard.' });
   }
 });
