@@ -29,7 +29,7 @@ if (!fs.existsSync(uploadDir)) {
 
 // Sécurisation et CORS
 app.use(helmet());
-const corsOptions = { origin: 'https://front-end-i3n7.onrender.com' }; // Frontend autorisé
+const corsOptions = { origin: '*' }; // Frontend autorisé
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
