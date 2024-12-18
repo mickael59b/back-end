@@ -14,24 +14,21 @@ if (!fs.existsSync(uploadDir)) {
 // Configurer Multer pour l'upload des fichiers
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);  // Définir le répertoire de destination pour l'upload
+    cb(null, uploadDir); // Répertoire de destination pour l'upload
   },
   filename: (req, file, cb) => {
-    // Ajouter un timestamp pour garantir des noms de fichiers uniques
-    cb(null, Date.now() + path.extname(file.originalname)); 
+    cb(null, Date.now() + path.extname(file.originalname)); // Nom unique pour le fichier
   }
 });
 
 const upload = multer({ storage: storage });
 
-// Route d'upload de l'image
+// Route POST pour l'upload
 router.post('/', upload.single('image'), (req, res) => {
-  // Vérifier si un fichier a été téléchargé
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
   }
-  
-  // Retourner l'URL du fichier téléchargé
+
   const fileUrl = `/uploads/${req.file.filename}`;
   res.json({ fileUrl });
 });
