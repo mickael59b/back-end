@@ -35,17 +35,16 @@ router.post('/', upload, (req, res) => {
   // Affichage de l'objet complet du fichier pour debug
   console.log('Fichier téléchargé:', req.file);
 
-  // Vérification si l'URL sécurisée de l'image est présente
-  if (!req.file.secure_url) {
+  // Vérification si l'URL de l'image est présente dans `path`
+  if (!req.file.path) {
     return res.status(500).json({ error: 'L\'URL de l\'image n\'a pas été renvoyée par Cloudinary' });
   }
 
-  // Retourner l'URL sécurisée de l'image téléchargée
+  // Retourner l'URL de l'image téléchargée
   res.status(200).json({
-    imageUrl: req.file.secure_url, // URL sécurisée de l'image sur Cloudinary
+    imageUrl: req.file.path, // Utilisation de `path` pour l'URL
     imageName: req.file.originalname, // Nom original du fichier téléchargé
   });
 });
 
 module.exports = router;
-
