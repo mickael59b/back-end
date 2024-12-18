@@ -15,7 +15,20 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limite de taille (5 Mo)
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Le fichier doit être une image (jpeg, jpg, png, gif).'));
+  }
+});
 
 // Route d'upload d'image
 router.post('/', upload.single('image'), async (req, res) => {
@@ -26,7 +39,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   try {
     const imgurClientId = process.env.IMGUR_CLIENT_ID; // Utilisez votre Client-ID Imgur ici
     const imgurUploadUrl = 'https://api.imgur.com/3/image';
-    
+
     // Upload de l'image sur Imgur
     const imageData = await axios.post(
       imgurUploadUrl,
@@ -53,4 +66,3 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
 
 module.exports = router;
-
