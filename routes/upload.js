@@ -23,14 +23,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Route POST pour l'upload
-router.post('/', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
-  }
+router.post('/', (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: `Erreur Multer : ${err.message}` });
+    } else if (err) {
+      return res.status(500).json({ error: `Erreur serveur : ${err.message}` });
+    }
 
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.json({ fileUrl });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ fileUrl });
+  });
 });
 
 module.exports = router;
