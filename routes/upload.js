@@ -32,7 +32,7 @@ router.post('/', upload, (req, res) => {
   }
 
   // Retourner l'URL sécurisée de l'image téléchargée
-  res.status(200).json({ imageUrl: req.file.secure_url });
+   res.status(200).json({ imageUrl: req.file.path });
 });
 
 module.exports = router;
