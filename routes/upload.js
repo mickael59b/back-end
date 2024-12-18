@@ -1,4 +1,3 @@
-// routes/upload.js
 const express = require('express');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -17,30 +16,35 @@ cloudinary.config({
 const storage = new multerStorageCloudinary({
   cloudinary: cloudinary,
   params: {
-    folder: 'projects/', // Dossier dans Cloudinary
+    folder: 'projects/', // Dossier dans Cloudinary où les images seront stockées
     allowed_formats: ['jpg', 'png', 'jpeg'], // Formats autorisés
+    resource_type: 'image', // Spécifier que ce sont des images
   },
 });
 
 // Middleware pour l'upload d'image
-const upload = multer({ storage: storage }).single('image'); // 'image' est le nom du champ
+const upload = multer({ storage: storage }).single('image'); // 'image' est le nom du champ dans le formulaire
 
 // Route pour l'upload d'image
 router.post('/', upload, (req, res) => {
-  // Log des données de fichier
-  console.log('Fichier téléchargé:', req.file);
-  
+  // Vérifier si un fichier a été téléchargé
   if (!req.file) {
     return res.status(400).json({ error: 'Aucune image téléchargée' });
   }
 
-  // Vérification que l'URL de l'image est présente dans la réponse de Cloudinary
+  // Affichage de l'objet complet du fichier pour debug
+  console.log('Fichier téléchargé:', req.file);
+
+  // Vérification si l'URL sécurisée de l'image est présente
   if (!req.file.secure_url) {
     return res.status(500).json({ error: 'L\'URL de l\'image n\'a pas été renvoyée par Cloudinary' });
   }
 
   // Retourner l'URL sécurisée de l'image téléchargée
-  res.status(200).json({ imageUrl: req.file.secure_url });
+  res.status(200).json({
+    imageUrl: req.file.secure_url, // URL sécurisée de l'image sur Cloudinary
+    imageName: req.file.originalname, // Nom original du fichier téléchargé
+  });
 });
 
 module.exports = router;
