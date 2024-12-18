@@ -43,7 +43,7 @@ const uploadImageToImgur = async (file) => {
 };
 
 // Route d'upload de l'image
-router.post('/upload', upload, async (req, res) => {
+router.post('/', upload, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
   }
