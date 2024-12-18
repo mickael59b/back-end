@@ -14,15 +14,15 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const projet = new Projet({
+    const project = new Project({ // Changer 'Projet' en 'Project'
       title,
       category,
       description,
       imageUrl,
     });
 
-    const savedProjet = await projet.save();
-    res.status(201).json(savedProjet);
+    const savedProject = await project.save(); // Changer 'projet' en 'project'
+    res.status(201).json(savedProject);
   } catch (err) {
     console.error('Erreur lors de la création du projet:', err);
     res.status(500).json({ message: 'Erreur lors de la création du projet', error: err.message });
