@@ -26,20 +26,24 @@ const uploadImageToImgur = async (file) => {
   const imgurClientId = process.env.IMGUR_CLIENT_ID;
   const imgurUploadUrl = 'https://api.imgur.com/3/image';
 
-  const imageData = await axios.post(
-    imgurUploadUrl,
-    {
-      image: fs.readFileSync(file.path).toString('base64'),
-      type: 'base64',
-    },
-    {
+  // Utilisation de FormData pour envoyer l'image
+  const formData = new FormData();
+  formData.append('image', fs.createReadStream(file.path)); // Utiliser le stream de fichier directement
+
+  try {
+    const response = await axios.post(imgurUploadUrl, formData, {
       headers: {
         Authorization: `Client-ID ${imgurClientId}`,
+        'Content-Type': 'multipart/form-data',
       },
-    }
-  );
+    });
 
-  return imageData.data.data.link;
+    // Retourner l'URL de l'image téléchargée
+    return response.data.data.link;
+  } catch (error) {
+    console.error('Erreur d\'upload sur Imgur:', error.message);
+    throw error; // Lancer l'erreur pour qu'elle soit gérée dans la route
+  }
 };
 
 // Route d'upload de l'image
