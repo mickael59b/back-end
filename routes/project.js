@@ -17,7 +17,7 @@ router.post('/', async (req, res) => {
       title,
       category,
       description,
-      imageUrl,  // L'URL de l'image
+      imageUrl,  // L'URL complète de l'image
       imageName, // Le nom de l'image
     });
 
