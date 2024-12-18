@@ -27,13 +27,14 @@ const upload = multer({ storage: storage }).single('image'); // 'image' est le n
 
 // Route pour l'upload d'image
 router.post('/', upload, (req, res) => {
-  console.log(req.file);  // Ajoutez un log pour vérifier le contenu de req.file
+  // Log des données de fichier
+  console.log('Fichier téléchargé:', req.file);
   
   if (!req.file) {
     return res.status(400).json({ error: 'Aucune image téléchargée' });
   }
 
-  // Vérification de la réponse de Cloudinary
+  // Vérification que l'URL de l'image est présente dans la réponse de Cloudinary
   if (!req.file.secure_url) {
     return res.status(500).json({ error: 'L\'URL de l\'image n\'a pas été renvoyée par Cloudinary' });
   }
