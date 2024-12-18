@@ -1,54 +1,60 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const router = express.Router();
 
-// Configuration de multer pour stocker temporairement l'image
+// Configuration de multer pour l'upload des images
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads'); // Dossier temporaire pour l'upload local
+    cb(null, 'uploads');
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Nom unique du fichier
+    cb(null, Date.now() + path.extname(file.originalname)); // Nom unique pour chaque fichier
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage }).single('image');
 
-// Route d'upload d'image
-router.post('/', upload.single('image'), async (req, res) => {
+// Fonction pour uploader une image sur Imgur
+const uploadImageToImgur = async (file) => {
+  const imgurClientId = process.env.IMGUR_CLIENT_ID;
+  const imgurUploadUrl = 'https://api.imgur.com/3/image';
+
+  const imageData = await axios.post(
+    imgurUploadUrl,
+    {
+      image: fs.readFileSync(file.path).toString('base64'),
+      type: 'base64',
+    },
+    {
+      headers: {
+        Authorization: `Client-ID ${imgurClientId}`,
+      },
+    }
+  );
+
+  return imageData.data.data.link;
+};
+
+// Route d'upload de l'image
+router.post('/upload', upload, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
   }
 
   try {
-    const imgurClientId = process.env.IMGUR_CLIENT_ID; // Utilisez votre Client-ID Imgur ici
-    const imgurUploadUrl = 'https://api.imgur.com/3/image';
-    
-    // Upload de l'image sur Imgur
-    const imageData = await axios.post(
-      imgurUploadUrl,
-      {
-        image: fs.readFileSync(path.join(__dirname, 'uploads', req.file.filename)).toString('base64'),
-        type: 'base64',
-      },
-      {
-        headers: {
-          Authorization: `Client-ID ${imgurClientId}`,
-        },
-      }
-    );
-
-    // Renvoyer l'URL de l'image téléchargée sur Imgur
-    res.json({ imageUrl: imageData.data.data.link });
-
-    // Optionnel : Supprimer l'image locale après l'upload
-    fs.unlinkSync(path.join(__dirname, 'uploads', req.file.filename));
+    const imageUrl = await uploadImageToImgur(req.file);
+    // Supprimer l'image après upload
+    fs.unlinkSync(req.file.path);
+    res.status(200).json({ imageUrl });
   } catch (error) {
-    console.error('Erreur d\'upload sur Imgur:', error);
-    res.status(500).json({ error: 'Erreur d\'upload sur Imgur', message: error.message });
+    res.status(500).json({ error: 'Erreur lors de l\'upload de l\'image sur Imgur', message: error.message });
   }
 });
 
