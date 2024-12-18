@@ -1,50 +1,45 @@
 // routes/upload.js
 const express = require('express');
+const axios = require('axios');
+const FormData = require('form-data');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const router = express.Router();
+require('dotenv').config();  // Charger les variables d'environnement
 
-// Configurer le stockage des fichiers
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Dossier où les images seront enregistrées
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Générer un nom de fichier unique
+// Récupérer le Client-ID d'Imgur à partir des variables d'environnement
+const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
+
+// Configurer Multer pour accepter l'image
+const storage = multer.memoryStorage();  // Utiliser la mémoire pour stocker temporairement le fichier
+const upload = multer({ storage: storage });
+
+// Route pour l'upload d'image
+router.post('/', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
   }
-});
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limite de taille 5 Mo
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Seules les images sont autorisées.'));
-    }
-  }
-});
-
-// Route pour uploader l'image
-router.post('/', upload.single('image'), (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'Aucune image téléchargée' });
-    }
+    // Créer un objet FormData pour envoyer l'image
+    const formData = new FormData();
+    formData.append('image', req.file.buffer.toString('base64'));  // Convertir l'image en base64
 
-    // Construire l'URL complète pour l'image
-    const fileUrl = `https://back-end-api-gfl0.onrender.com/uploads/${req.file.filename}`; // URL complète de l'image
-    const imageName = req.file.filename; // Nom du fichier
+    // Envoyer la requête à Imgur
+    const response = await axios.post('https://api.imgur.com/3/image', formData, {
+      headers: {
+        Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
+        ...formData.getHeaders(),
+      }
+    });
 
-    // Renvoi de l'URL et du nom de l'image après l'upload
-    res.status(200).json({ fileUrl, fileName: imageName });
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de l\'upload de l\'image', error: error.message });
+    // Retourner l'URL de l'image téléchargée sur Imgur
+    const imageUrl = response.data.data.link;
+    res.json({ fileUrl: imageUrl });
+  } catch (err) {
+    console.error('Erreur lors de l\'upload sur Imgur:', err.message);
+    res.status(500).json({ error: 'Erreur lors de l\'upload de l\'image sur Imgur', message: err.message });
   }
 });
 
