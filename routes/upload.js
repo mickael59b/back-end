@@ -1,7 +1,6 @@
 // routes/upload.js
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const multerStorageCloudinary = require('multer-storage-cloudinary').CloudinaryStorage;
 
@@ -14,7 +13,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configurer le stockage pour Multer
+// Configurer le stockage pour Multer avec Cloudinary
 const storage = new multerStorageCloudinary({
   cloudinary: cloudinary,
   params: {
@@ -23,16 +22,17 @@ const storage = new multerStorageCloudinary({
   },
 });
 
-// Middleware pour l'upload
+// Middleware pour l'upload d'image
 const upload = multer({ storage: storage }).single('image'); // 'image' est le nom du champ
 
+// Route pour l'upload d'image
 router.post('/', upload, (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucune image téléchargée' });
   }
 
-  // Retourner l'URL de l'image téléchargée
-  res.status(200).json({ imageUrl: req.file.path });
+  // Retourner l'URL sécurisée de l'image téléchargée
+  res.status(200).json({ imageUrl: req.file.secure_url });
 });
 
 module.exports = router;
