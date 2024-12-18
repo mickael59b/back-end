@@ -24,7 +24,7 @@ const upload = multer({ storage: storage }).single('image'); // 'image' est le n
 const router = express.Router();
 
 // Route pour uploader l'image
-router.post('/upload', upload, (req, res) => {
+router.post('/', upload, (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucune image téléchargée' });
   }
