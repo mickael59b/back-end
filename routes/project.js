@@ -11,8 +11,14 @@ router.post('/', async (req, res) => {
 
   const { title, category, description, imageUrl, imageName } = req.body;
 
+  // Vérification des champs obligatoires
   if (!title || !category || !description) {
     return res.status(400).json({ message: 'Tous les champs sont requis' });
+  }
+
+  // Validation de l'URL et du nom de l'image si présents
+  if (imageUrl && !imageName) {
+    return res.status(400).json({ message: 'Le nom de l\'image est requis si une image est fournie' });
   }
 
   try {
@@ -20,8 +26,8 @@ router.post('/', async (req, res) => {
       title,
       category,
       description,
-      imageUrl,  // Vérifiez si imageUrl est bien reçu
-      imageName,  // Vérifiez si imageName est bien reçu
+      imageUrl,  // Stockage de l'URL de l'image
+      imageName,  // Stockage du nom de l'image
     });
 
     const savedProjet = await projet.save();
@@ -31,7 +37,6 @@ router.post('/', async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la création du projet', error: err.message });
   }
 });
-
 // Récupérer tous les projets
 router.get('/', async (req, res) => {
   try {
