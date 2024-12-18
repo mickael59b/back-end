@@ -7,22 +7,27 @@ const router = express.Router();
 
 // Route pour créer un projet avec ou sans image
 router.post('/', async (req, res) => {
-  const { title, category, description, imageUrl } = req.body;
+  const { title, category, description, imageUrl, imageName } = req.body;
+
+  // Vérification des données reçues
+  console.log("Données reçues pour créer le projet:", req.body);
 
   if (!title || !category || !description) {
     return res.status(400).json({ message: 'Tous les champs sont requis' });
   }
 
   try {
-    const project = new Project({ // Changer 'Projet' en 'Project'
+    // Création du projet avec l'URL de l'image et le nom de l'image
+    const projet = new Project({
       title,
       category,
       description,
-      imageUrl,
+      imageUrl,  // URL de l'image
+      imageName,  // Nom de l'image
     });
 
-    const savedProject = await project.save(); // Changer 'projet' en 'project'
-    res.status(201).json(savedProject);
+    const savedProjet = await projet.save();
+    res.status(201).json(savedProjet);
   } catch (err) {
     console.error('Erreur lors de la création du projet:', err);
     res.status(500).json({ message: 'Erreur lors de la création du projet', error: err.message });
