@@ -76,11 +76,9 @@ router.delete('/:id', async (req, res) => {
 
     // Supprimer l'image du dossier 'uploads' si elle existe
     if (project.imageUrl) {
-      // Extraire le nom du fichier à partir de l'URL
-      const imageFileName = path.basename(project.imageUrl); // Utiliser path.basename pour extraire le nom du fichier
+      const imageFileName = path.basename(project.imageUrl); // Extraire le nom du fichier
       const imagePath = path.join(__dirname, '..', 'uploads', imageFileName); // Chemin du fichier à supprimer
 
-      // Vérifier si le fichier existe et le supprimer
       fs.unlink(imagePath, (err) => {
         if (err) {
           console.error('Erreur lors de la suppression de l\'image:', err);
