@@ -59,16 +59,42 @@ router.get('/:id', async (req, res) => {
 // Supprimer un projet par ID
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
+  
   try {
+    // Vérifier si l'ID est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID de projet invalide' });
+    }
+
+    // Trouver le projet dans la base de données
     const project = await Project.findById(id);
     if (!project) {
       return res.status(404).json({ message: 'Projet non trouvé' });
     }
 
-    // Supprimer le projet
+    // Supprimer l'image du dossier 'uploads' si elle existe
+    if (project.imageUrl) {
+      // Extraire le nom du fichier à partir de l'URL
+      const imageFileName = path.basename(project.imageUrl);
+      const imagePath = path.join(__dirname, '..', 'uploads', imageFileName); // Chemin du fichier à supprimer
+
+      // Vérifier si le fichier existe et le supprimer
+      fs.unlink(imagePath, (err) => {
+        if (err) {
+          console.error('Erreur lors de la suppression de l\'image:', err);
+        } else {
+          console.log('Image supprimée avec succès');
+        }
+      });
+    }
+
+    // Supprimer le projet de la base de données
     await Project.findByIdAndDelete(id);
+
+    // Réponse de succès
     res.status(200).json({ message: 'Projet supprimé avec succès' });
   } catch (err) {
+    console.error('Erreur lors de la suppression du projet:', err);
     res.status(500).json({ message: 'Erreur lors de la suppression du projet', error: err.message });
   }
 });
