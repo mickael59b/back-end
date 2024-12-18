@@ -2,40 +2,50 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const router = express.Router();
 
-// Créer le dossier 'uploads' s'il n'existe pas
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configurer Multer pour l'upload des fichiers
+// Configurer le stockage des fichiers
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); // Répertoire de destination pour l'upload
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Dossier où les images seront enregistrées
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Nom unique pour le fichier
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Générer un nom de fichier unique
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limite de taille 5 Mo
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
 
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Seules les images sont autorisées.'));
+    }
+  }
+});
+
+// Route pour uploader l'image
 router.post('/', upload.single('image'), (req, res) => {
-  console.log('Requête reçue :', req.body);
-  console.log('Fichier reçu :', req.file);
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Aucune image téléchargée' });
+    }
 
-  if (!req.file) {
-    console.error('Erreur : Aucun fichier téléchargé');
-    return res.status(400).json({ error: 'Aucun fichier n\'a été téléchargé' });
+    // Construire l'URL complète pour l'image
+    const fileUrl = `https://back-end-api-gfl0.onrender.com/uploads/${req.file.filename}`; // URL complète de l'image
+    const imageName = req.file.filename; // Nom du fichier
+
+    // Renvoi de l'URL et du nom de l'image après l'upload
+    res.status(200).json({ fileUrl, fileName: imageName });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de l\'upload de l\'image', error: error.message });
   }
-
-  const fileUrl = `/uploads/${req.file.filename}`;
-  console.log('Fichier enregistré avec succès :', fileUrl);
-  res.json({ fileUrl });
 });
-
 
 module.exports = router;
