@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');  // Import du module path
+const fs = require('fs');      // Import du module fs
 const Project = require('../models/Project'); // Modèle Mongoose pour les projets
 const router = express.Router();
 
@@ -75,7 +77,7 @@ router.delete('/:id', async (req, res) => {
     // Supprimer l'image du dossier 'uploads' si elle existe
     if (project.imageUrl) {
       // Extraire le nom du fichier à partir de l'URL
-      const imageFileName = path.basename(project.imageUrl);
+      const imageFileName = path.basename(project.imageUrl); // Utiliser path.basename pour extraire le nom du fichier
       const imagePath = path.join(__dirname, '..', 'uploads', imageFileName); // Chemin du fichier à supprimer
 
       // Vérifier si le fichier existe et le supprimer
