@@ -61,6 +61,16 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Récupérer toutes les catégories uniques des projets
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await Project.distinct('category');
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur de récupération des catégories', error: err.message });
+  }
+});
+
 // Supprimer un projet par ID
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
