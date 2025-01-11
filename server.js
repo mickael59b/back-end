@@ -7,6 +7,9 @@ const fs = require('fs');
 const helmet = require('helmet');
 const authMiddleware = require('./middleware/authMiddleware');
 
+// Charger les variables d'environnement
+require('dotenv').config();
+
 const app = express();
 
 // Validation des variables d'environnement
@@ -44,10 +47,10 @@ const contactRoutes = require('./routes/contact');
 const uploadRoutes = require('./routes/upload');
 
 // Définir les routes
-app.use('/api/clients', clientRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/contact', contactRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/clients', clientRoutes);
+app.use('/projects', projectRoutes);
+app.use('/contact', contactRoutes);
+app.use('/upload', uploadRoutes);
 
 // Protéger certaines routes
 app.use('/api/projects', authMiddleware, projectRoutes);
@@ -60,14 +63,16 @@ app.get('/', (req, res) => {
 
 // Gestion des erreurs
 app.use((err, req, res, next) => {
-  console.error('Erreur serveur :', err.stack); // Plus de détails
-  res.status(500).json({ error: 'Erreur serveur' });
+  console.error('Erreur serveur :', err.stack); // Log détaillé de l'erreur
+  const statusCode = err.statusCode || 500; // Utilisation d'un code d'état approprié
+  const message = err.message || 'Erreur serveur';
+  res.status(statusCode).json({ error: message });
 });
 
 // Connexion à MongoDB
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+    await mongoose.connect(process.env.MONGO_URI);  // Supprimer les options dépréciées
     console.log('MongoDB connecté');
   } catch (err) {
     console.error('Erreur de connexion MongoDB :', err.message);
